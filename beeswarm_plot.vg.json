@@ -185,6 +185,8 @@
   "legends": [
     {
       "fill": "color",
+      "direction": "horizontal",
+      "orient": "bottom",
       "encode": {
         "symbols": {
           "enter": {
