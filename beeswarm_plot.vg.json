@@ -59,7 +59,7 @@
           "impact": "number"
         }
       },
-      "url": "data/data.csv",
+      "url": "https://raw.githubusercontent.com/iaindillingham/viscomm_2019/master/data.csv",
       "transform": [
         {
           "type": "formula",
