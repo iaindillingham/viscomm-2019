@@ -1,0 +1,258 @@
+{
+  "$schema": "https://vega.github.io/schema/vega/v5.json",
+  "config": {
+    "axis": {
+      "titleColor": "#4F4D4A",
+      "titleFont": "Apercu, Trebuchet MS, sans-serif",
+      "titleFontSize": 12,
+      "labelColor": "#4F4D4A",
+      "labelFont": "Apercu, Trebuchet MS, sans-serif",
+      "labelFontSize": 12,
+      "domainColor": "#DAD4C9",
+      "tickColor": "#DAD4C9",
+      "gridColor": "#DAD4C9"
+    },
+    "legend": {
+      "labelFont": "Apercu, Trebuchet MS, sans-serif",
+      "labelFontSize": 12,
+      "labelColor": "#4F4D4A"
+    }
+  },
+  "width": 800,
+  "padding": 2,
+  "signals": [
+    {
+      "name": "focus_company_id",
+      "value": "1it1ywg7w694"
+    },
+    {
+      "name": "focus_name",
+      "value": "Focus"
+    },
+    {
+      "name": "context_name",
+      "value": "Context"
+    },
+    {
+      "name": "n",
+      "value": 6
+    },
+    {
+      "name": "y_step",
+      "value": 60
+    },
+    {
+      "name": "height",
+      "update": "length(data('focus_company_top_n_topics')) * y_step + y_step"
+    },
+    {
+      "name": "r",
+      "value": 5
+    }
+  ],
+  "data": [
+    {
+      "name": "table",
+      "format": {
+        "type": "csv",
+        "parse": {
+          "impact": "number"
+        }
+      },
+      "url": "data/data.csv",
+      "transform": [
+        {
+          "type": "formula",
+          "expr": "datum.company_id == focus_company_id",
+          "as": "is_focus"
+        },
+        {
+          "type": "formula",
+          "expr": "if(datum.is_focus, focus_name, context_name)",
+          "as": "entity_name"
+        },
+        {
+          "type": "window",
+          "sort": {
+            "field": "impact",
+            "order": "descending"
+          },
+          "groupby": [
+            "company_id"
+          ],
+          "ops": [
+            "rank"
+          ]
+        },
+        {
+          "type": "collect",
+          "sort": {
+            "field": [
+              "company_id",
+              "rank"
+            ],
+            "order": [
+              "ascending",
+              "ascending"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "focus_company_top_n_topics",
+      "source": "table",
+      "transform": [
+        {
+          "type": "filter",
+          "expr": "datum.is_focus"
+        },
+        {
+          "type": "filter",
+          "expr": "datum.rank <= n"
+        }
+      ]
+    },
+    {
+      "name": "top_n_topics",
+      "source": "table",
+      "transform": [
+        {
+          "type": "filter",
+          "expr": "indata('focus_company_top_n_topics', 'topic_id', datum.topic_id)"
+        }
+      ]
+    }
+  ],
+  "scales": [
+    {
+      "name": "x",
+      "type": "linear",
+      "domain": {
+        "data": "top_n_topics",
+        "field": "impact"
+      },
+      "range": "width",
+      "nice": true
+    },
+    {
+      "name": "y",
+      "type": "point",
+      "padding": 0.5,
+      "domain": {
+        "data": "top_n_topics",
+        "field": "topic_name"
+      },
+      "range": "height"
+    },
+    {
+      "name": "color",
+      "type": "ordinal",
+      "domain": [
+        {
+          "signal": "focus_name"
+        },
+        {
+          "signal": "context_name"
+        }
+      ],
+      "range": [
+        "#ff0081",
+        "#4f93db"
+      ]
+    }
+  ],
+  "axes": [
+    {
+      "scale": "x",
+      "orient": "bottom",
+      "grid": true,
+      "title": "Impact"
+    },
+    {
+      "scale": "x",
+      "orient": "top",
+      "grid": false,
+      "labels": false,
+      "ticks": false
+    },
+    {
+      "scale": "y",
+      "orient": "right",
+      "grid": true
+    }
+  ],
+  "legends": [
+    {
+      "fill": "color",
+      "encode": {
+        "symbols": {
+          "enter": {
+            "size": {
+              "signal": "pow(2 * r, 2)"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "marks": [
+    {
+      "type": "symbol",
+      "from": {
+        "data": "top_n_topics"
+      },
+      "encode": {
+        "enter": {
+          "x": {
+            "field": "impact",
+            "scale": "x"
+          },
+          "y": {
+            "field": "topic_name",
+            "scale": "y"
+          },
+          "xfocus": {
+            "field": "impact",
+            "scale": "x"
+          },
+          "yfocus": {
+            "field": "topic_name",
+            "scale": "y"
+          },
+          "size": {
+            "signal": "pow(2 * r, 2)"
+          },
+          "fill": {
+            "field": "entity_name",
+            "scale": "color"
+          },
+          "tooltip": {
+            "signal": "{\"Company name\": datum.company_name, \"Impact\": format(datum.impact, ',d')}"
+          }
+        }
+      },
+      "transform": [
+        {
+          "type": "force",
+          "forces": [
+            {
+              "force": "collide",
+              "radius": {
+                "signal": "r"
+              }
+            },
+            {
+              "force": "x",
+              "x": "xfocus"
+            },
+            {
+              "force": "y",
+              "y": "yfocus"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
