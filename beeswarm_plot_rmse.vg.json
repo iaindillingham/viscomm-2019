@@ -1,0 +1,531 @@
+{
+  "$schema": "https://vega.github.io/schema/vega/v5.json",
+  "config": {
+    "axis": {
+      "titleColor": "#4F4D4A",
+      "titleFont": "Apercu, Trebuchet MS, sans-serif",
+      "titleFontSize": 12,
+      "labelColor": "#4F4D4A",
+      "labelFont": "Apercu, Trebuchet MS, sans-serif",
+      "labelFontSize": 12,
+      "domainColor": "#DAD4C9",
+      "tickColor": "#DAD4C9",
+      "gridColor": "#DAD4C9"
+    },
+    "legend": {
+      "labelFont": "Apercu, Trebuchet MS, sans-serif",
+      "labelFontSize": 12,
+      "labelColor": "#4F4D4A"
+    },
+    "rect": {
+      "fill": "#DAD4C9"
+    }
+  },
+  "padding": 2,
+  "signals": [
+    {
+      "name": "focus_company_id",
+      "value": "1it1ywg7w694"
+    },
+    {
+      "name": "focus_name",
+      "value": "Focus"
+    },
+    {
+      "name": "context_name",
+      "value": "Context"
+    },
+    {
+      "name": "n",
+      "value": 6
+    },
+    {
+      "name": "beeswarm_width",
+      "value": 800
+    },
+    {
+      "name": "y_step",
+      "value": 60
+    },
+    {
+      "name": "beeswarm_height",
+      "update": "length(data('focus_company_top_n_topics')) * y_step + y_step"
+    },
+    {
+      "name": "r",
+      "value": 5
+    },
+    {
+      "name": "x_strength",
+      "bind": {
+        "input": "range",
+        "debounce": 500,
+        "min": 0,
+        "max": 1,
+        "step": 0.1,
+        "name": "X Strength"
+      },
+      "value": 0.2
+    },
+    {
+      "name": "y_strength",
+      "bind": {
+        "input": "range",
+        "debounce": 500,
+        "min": 0,
+        "max": 1,
+        "step": 0.1,
+        "name": "Y Strength"
+      },
+      "value": 0.1
+    },
+    {
+      "name": "bar_width",
+      "value": 400
+    },
+    {
+      "name": "bar_height",
+      "value": 200
+    }
+  ],
+  "data": [
+    {
+      "name": "table",
+      "format": {
+        "type": "csv",
+        "parse": {
+          "impact": "number"
+        }
+      },
+      "url": "https://raw.githubusercontent.com/iaindillingham/viscomm_2019/master/data.csv",
+      "transform": [
+        {
+          "type": "formula",
+          "expr": "datum.company_id == focus_company_id",
+          "as": "is_focus"
+        },
+        {
+          "type": "formula",
+          "expr": "if(datum.is_focus, focus_name, context_name)",
+          "as": "entity_name"
+        },
+        {
+          "type": "window",
+          "sort": {
+            "field": "impact",
+            "order": "descending"
+          },
+          "groupby": [
+            "company_id"
+          ],
+          "ops": [
+            "rank"
+          ]
+        },
+        {
+          "type": "collect",
+          "sort": {
+            "field": [
+              "company_id",
+              "rank"
+            ],
+            "order": [
+              "ascending",
+              "ascending"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "focus_company_top_n_topics",
+      "source": "table",
+      "transform": [
+        {
+          "type": "filter",
+          "expr": "datum.is_focus"
+        },
+        {
+          "type": "filter",
+          "expr": "datum.rank <= n"
+        }
+      ]
+    },
+    {
+      "name": "top_n_topics",
+      "source": "table",
+      "transform": [
+        {
+          "type": "filter",
+          "expr": "indata('focus_company_top_n_topics', 'topic_id', datum.topic_id)"
+        }
+      ]
+    },
+    {
+      "name": "forces",
+      "source": "top_n_topics",
+      "transform": [
+        {
+          "type": "project",
+          "fields": [
+            "topic_name",
+            "company_name",
+            "impact",
+            "entity_name"
+          ]
+        },
+        {
+          "type": "formula",
+          "expr": "scale('x', datum.impact)",
+          "as": "xfocus"
+        },
+        {
+          "type": "formula",
+          "expr": "scale('y', datum.topic_name)",
+          "as": "yfocus"
+        },
+        {
+          "type": "force",
+          "static": true,
+          "restart": true,
+          "forces": [
+            {
+              "force": "collide",
+              "radius": {
+                "signal": "r"
+              }
+            },
+            {
+              "force": "x",
+              "x": "xfocus",
+              "strength": {
+                "signal": "x_strength"
+              }
+            },
+            {
+              "force": "y",
+              "y": "yfocus",
+              "strength": {
+                "signal": "y_strength"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "forces_rmse",
+      "source": "forces",
+      "transform": [
+        {
+          "type": "formula",
+          "expr": "pow(datum.xfocus - datum.x, 2)",
+          "as": "xse"
+        },
+        {
+          "type": "formula",
+          "expr": "pow(datum.yfocus - datum.y, 2)",
+          "as": "yse"
+        },
+        {
+          "type": "aggregate",
+          "groupby": [
+            "topic_name"
+          ],
+          "fields": [
+            "xse",
+            "yse"
+          ],
+          "ops": [
+            "mean",
+            "mean"
+          ],
+          "as": [
+            "xmse",
+            "ymse"
+          ]
+        },
+        {
+          "type": "formula",
+          "expr": "sqrt(datum.xmse)",
+          "as": "xrmse"
+        },
+        {
+          "type": "formula",
+          "expr": "sqrt(datum.ymse)",
+          "as": "yrmse"
+        },
+        {
+          "type": "fold",
+          "fields": [
+            "xrmse",
+            "yrmse"
+          ],
+          "as": [
+            "scale",
+            "rmse"
+          ]
+        }
+      ]
+    }
+  ],
+  "scales": [
+    {
+      "name": "x",
+      "type": "linear",
+      "domain": {
+        "data": "top_n_topics",
+        "field": "impact"
+      },
+      "range": [
+        0,
+        {
+          "signal": "beeswarm_width"
+        }
+      ],
+      "nice": true
+    },
+    {
+      "name": "y",
+      "type": "point",
+      "padding": 0.5,
+      "domain": {
+        "data": "top_n_topics",
+        "field": "topic_name"
+      },
+      "range": [
+        0,
+        {
+          "signal": "beeswarm_height"
+        }
+      ]
+    },
+    {
+      "name": "color",
+      "type": "ordinal",
+      "domain": [
+        {
+          "signal": "focus_name"
+        },
+        {
+          "signal": "context_name"
+        }
+      ],
+      "range": [
+        "#ff0081",
+        "#4f93db"
+      ]
+    }
+  ],
+  "layout": {
+    "columns": 1,
+    "padding": {
+      "row": 60
+    }
+  },
+  "marks": [
+    {
+      "type": "group",
+      "encode": {
+        "enter": {
+          "width": {
+            "signal": "beeswarm_width"
+          },
+          "height": {
+            "signal": "beeswarm_height"
+          }
+        }
+      },
+      "axes": [
+        {
+          "scale": "x",
+          "orient": "bottom",
+          "grid": true,
+          "title": "Impact",
+          "encode": {
+            "grid": {
+              "update": {
+                "y2": {
+                  "signal": "-beeswarm_height"
+                }
+              }
+            }
+          }
+        },
+        {
+          "scale": "x",
+          "orient": "top",
+          "grid": false,
+          "labels": false,
+          "ticks": false
+        },
+        {
+          "scale": "y",
+          "orient": "right",
+          "grid": true,
+          "encode": {
+            "grid": {
+              "update": {
+                "x2": {
+                  "signal": "-beeswarm_width"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "legends": [
+        {
+          "fill": "color",
+          "direction": "horizontal",
+          "orient": "bottom",
+          "encode": {
+            "symbols": {
+              "enter": {
+                "size": {
+                  "signal": "pow(2 * r, 2)"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "marks": [
+        {
+          "type": "symbol",
+          "from": {
+            "data": "forces"
+          },
+          "encode": {
+            "enter": {
+              "size": {
+                "signal": "pow(2 * r, 2)"
+              },
+              "fill": {
+                "field": "entity_name",
+                "scale": "color"
+              },
+              "tooltip": {
+                "signal": "{\"Company name\": datum.company_name, \"Impact\": format(datum.impact, ',d')}"
+              }
+            },
+            "update": {
+              "x": {
+                "field": "x"
+              },
+              "y": {
+                "field": "y"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "scales": [
+        {
+          "name": "x",
+          "type": "linear",
+          "domain": {
+            "data": "forces_rmse",
+            "field": "rmse"
+          },
+          "range": [
+            0,
+            {
+              "signal": "bar_width"
+            }
+          ],
+          "nice": true
+        },
+        {
+          "name": "y",
+          "type": "band",
+          "padding": 0.25,
+          "domain": {
+            "data": "forces_rmse",
+            "field": "topic_name"
+          },
+          "range": [
+            0,
+            {
+              "signal": "bar_height"
+            }
+          ]
+        }
+      ],
+      "layout": {},
+      "marks": [
+        {
+          "type": "group",
+          "from": {
+            "facet": {
+              "name": "series",
+              "data": "forces_rmse",
+              "groupby": [
+                "scale"
+              ]
+            }
+          },
+          "encode": {
+            "enter": {
+              "width": {
+                "signal": "bar_width"
+              },
+              "height": {
+                "signal": "bar_height"
+              }
+            }
+          },
+          "axes": [
+            {
+              "scale": "x",
+              "orient": "bottom",
+              "title": "RMSE (Pixels)"
+            },
+            {
+              "scale": "y",
+              "orient": "left",
+              "domain": false,
+              "ticks": false
+            }
+          ],
+          "marks": [
+            {
+              "type": "rect",
+              "from": {
+                "data": "series"
+              },
+              "encode": {
+                "enter": {
+                  "tooltip": {
+                    "signal": "{\"RMSE (Pixels)\": format(datum.rmse, '.2f')}"
+                  }
+                },
+                "update": {
+                  "x": {
+                    "value": 0,
+                    "scale": "x"
+                  },
+                  "x2": {
+                    "field": "rmse",
+                    "scale": "x"
+                  },
+                  "y": {
+                    "field": "topic_name",
+                    "scale": "y"
+                  },
+                  "height": {
+                    "scale": "y",
+                    "band": 1
+                  }
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
