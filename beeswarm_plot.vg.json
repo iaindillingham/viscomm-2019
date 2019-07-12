@@ -237,6 +237,7 @@
       "transform": [
         {
           "type": "force",
+          "static": true,
           "forces": [
             {
               "force": "collide",
@@ -246,11 +247,13 @@
             },
             {
               "force": "x",
-              "x": "xfocus"
+              "x": "xfocus",
+              "strength": 0.2
             },
             {
               "force": "y",
-              "y": "yfocus"
+              "y": "yfocus",
+              "strength": 0.1
             }
           ]
         }
