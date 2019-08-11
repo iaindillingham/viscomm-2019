@@ -4,6 +4,7 @@ This repository accompanies _Creating a Buzz around Corporate Reputation with Be
 
 * Visual Case Study: https://osf.io/4j9fw/
 * Supplemental Materials: https://observablehq.com/@iaindillingham/beeswarm-plots
+* GitHub repository: https://github.com/iaindillingham/viscomm_2019
 
 [Iain Dillingham]: http://dillingham.me.uk/
 [VisComm]: https://viscomm.io/
